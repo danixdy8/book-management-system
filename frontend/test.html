@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test API</title>
+</head>
+<body>
+    <h1>Test de Conexión a API</h1>
+    <button onclick="test()">Probar API</button>
+    <p id="result"></p>
+    <script>
+        async function test() {
+            const result = document.getElementById('result');
+            result.textContent = 'Probando...';
+            try {
+                const response = await fetch('http://localhost:8080/books');
+                result.textContent = 'Éxito: ' + response.status + ' - ' + await response.text();
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

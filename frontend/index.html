@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Libros</title>
+    <style>
+    /* 1. Estilos Generales y Tipografía */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #eef2f5; /* Gris azulado suave */
+        color: #333;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Alineación superior */
+        min-height: 100vh;
+        padding-top: 40px;
+    }
+
+    /* 2. Contenedor Principal (Tarjetas) */
+    #auth, #app {
+        background-color: #ffffff;
+        width: 100%;
+        max-width: 600px; /* Ancho máximo para que se vea elegante */
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Sombra suave */
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    /* Animación de entrada */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1, h2 {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 25px;
+    }
+
+    /* 3. Formularios e Inputs */
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px; /* Espacio entre inputs */
+    }
+
+    input {
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+        width: 100%; /* Ocupar todo el ancho disponible */
+        box-sizing: border-box; /* Para que el padding no rompa el ancho */
+    }
+
+    input:focus {
+        border-color: #3498db;
+        outline: none;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    }
+
+    /* 4. Botones */
+    button {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.1s;
+        color: white;
+        background-color: #3498db; /* Azul principal */
+    }
+
+    button:hover {
+        background-color: #2980b9;
+        transform: translateY(-1px);
+    }
+
+    button:active {
+        transform: translateY(1px);
+    }
+
+    /* Botón de Logout (Rojo suave) */
+    #logoutBtn {
+        background-color: #e74c3c;
+        margin-bottom: 20px;
+        width: 100%;
+    }
+    #logoutBtn:hover { background-color: #c0392b; }
+
+    /* Botón de Registrar (Verde) */
+    #registerBtn {
+        background-color: #27ae60;
+        margin-top: 10px;
+    }
+    #registerBtn:hover { background-color: #219150; }
+
+    /* 5. Lista de Libros */
+    ul {
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+    }
+
+    li {
+        background: #f8f9fa;
+        margin-bottom: 15px;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 5px solid #3498db; /* Borde de acento azul */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    li strong {
+        font-size: 1.1em;
+        color: #2c3e50;
+    }
+
+    /* Botón eliminar pequeño */
+    li button {
+        background-color: #e74c3c;
+        padding: 5px 10px;
+        font-size: 14px;
+        margin-left: 10px;
+    }
+
+    /* 6. Utilidades */
+    .admin-only { display: none; }
+    
+    #userRole {
+        text-align: center;
+        font-style: italic;
+        color: #7f8c8d;
+        margin-bottom: 15px;
+    }
+
+    /* Layout para la búsqueda */
+    .search-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+</style>
+<body>
+    <div id="auth">
+        <h2>Autenticación</h2>
+        <input id="username" placeholder="Usuario" required>
+        <input id="password" type="password" placeholder="Contraseña" required>
+        <button id="loginBtn">Login</button>
+        <button id="registerBtn">Registrar</button>
+    </div>
+    <div id="app" style="display:none;">
+        <h1>Libros Electrónicos</h1>
+        <button id="logoutBtn">Logout</button> <!-- Nuevo: Logout -->
+        <p id="userRole"></p> <!-- Muestra el rol -->
+        
+        <div class="admin-only"> <!-- Solo visible para admin -->
+            <h2>Agregar Libro</h2>
+            <form id="bookForm">
+                <input type="text" id="title" placeholder="Título" required>
+                <input type="text" id="author" placeholder="Autor" required>
+                <input type="number" id="year" placeholder="Año" required>
+                <input type="text" id="format" placeholder="Formato (ej. PDF)" required>
+                <input type="number" id="fileSize" placeholder="Tamaño archivo (bytes)" required>
+                <input type="text" id="isbn" placeholder="ISBN">
+                <button type="submit">Agregar</button>
+            </form>
+        </div>
+        
+    <h2>Buscar Libros</h2>
+            <div class="search-container">
+            <input type="text" id="searchQuery" placeholder="Buscar por título o autor">
+            <button id="searchBtn">Buscar</button>
+    </div>
+        
+        <h2>Lista de Libros</h2>
+        <button id="loadBooks">Cargar Todos los Libros</button>
+        <ul id="booksList"></ul>
+    </div>
+    
+    <script>
+        const apiUrl = 'http://localhost:8080';
+        let token = localStorage.getItem('token');
+        let userRole = null;
+        
+        // Función para mostrar libros
+       // Función para mostrar libros (VERSIÓN CORREGIDA)
+        // Copia y pega esto reemplazando la función displayBooks anterior
+        function displayBooks(books, listElement) {
+            listElement.innerHTML = '';
+
+            // --- PROTECCIÓN IMPORTANTE ---
+            // Si el servidor dice "null" (vacío), nosotros decimos "lista vacía []"
+            if (!books) {
+                books = [];
+            }
+            // -----------------------------
+
+            if (books.length === 0) {
+                listElement.innerHTML = '<li>No se encontraron libros.</li>';
+                return;
+            }
+            
+            books.forEach(book => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>${book.title}</strong> por ${book.author} (${book.year}) - ${book.format}
+                    <br>Tamaño: ${book.file_size} bytes | ISBN: ${book.isbn}
+                    ${userRole === 'admin' ? '<button onclick="deleteBook(' + book.id + ')">Eliminar</button>' : ''}
+                `;
+                listElement.appendChild(li);
+            });
+        }
+        
+        // Obtener rol del usuario
+        async function getUserRole() {
+            try {
+                const response = await fetch(`${apiUrl}/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    userRole = data.role;
+                    document.getElementById('userRole').textContent = `Rol: ${userRole}`;
+                    if (userRole === 'admin') {
+                        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                    }
+                }
+            } catch (error) {
+                console.error('Error obteniendo rol:', error);
+            }
+        }
+        
+        // Login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const response = await fetch(`${apiUrl}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    document.getElementById('auth').style.display = 'none';
+                    document.getElementById('app').style.display = 'block';
+                    await getUserRole(); // Obtener rol
+                    loadBooks();
+                } else {
+                    alert('Login fallido');
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        });
+        
+        // Registrar (solo user)
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const response = await fetch(`${apiUrl}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }) // Sin rol, siempre user
+                });
+                if (response.ok) {
+                    alert('Usuario registrado. Ahora haz login.');
+                } else {
+                    alert('Error al registrar');
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        });
+        
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            token = null;
+            userRole = null;
+            localStorage.removeItem('token');
+            document.getElementById('auth').style.display = 'block';
+            document.getElementById('app').style.display = 'none';
+            location.reload(); // Recarga para limpiar
+        });
+        
+        // Agregar libro (solo admin)
+        document.getElementById('bookForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (userRole !== 'admin') {
+                alert('Solo admins pueden agregar libros');
+                return;
+            }
+            const book = {
+                title: document.getElementById('title').value,
+                author: document.getElementById('author').value,
+                year: parseInt(document.getElementById('year').value),
+                format: document.getElementById('format').value,
+                file_size: parseInt(document.getElementById('fileSize').value),
+                isbn: document.getElementById('isbn').value
+            };
+            try {
+                const response = await fetch(`${apiUrl}/books`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(book)
+                });
+                if (response.ok) {
+                    alert('Libro agregado exitosamente');
+                    document.getElementById('bookForm').reset();
+                    loadBooks();
+                } else {
+                    const errorText = await response.text();
+                    alert('Error al agregar: ' + response.status + ' - ' + errorText);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        });
+        
+        // Cargar libros
+        async function loadBooks() {
+            try {
+                const response = await fetch(`${apiUrl}/books`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const books = await response.json();
+                    displayBooks(books, document.getElementById('booksList'));
+                } else {
+                    alert('Error al cargar libros: ' + response.status);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        }
+        
+        // Buscar libros
+        document.getElementById('searchBtn').addEventListener('click', async () => {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('Ingresa un término de búsqueda');
+                return;
+            }
+            try {
+                const response = await fetch(`${apiUrl}/books/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const books = await response.json();
+                    displayBooks(books, document.getElementById('searchResults'));
+                } else {
+                    alert('Error en búsqueda: ' + response.status);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        });
+        
+        // Eliminar libro (solo admin)
+        async function deleteBook(id) {
+            if (userRole !== 'admin') {
+                alert('Solo admins pueden eliminar libros');
+                return;
+            }
+            if (!confirm('¿Eliminar este libro?')) return;
+            try {
+                const response = await fetch(`${apiUrl}/books/${id}`, { 
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    alert('Libro eliminado');
+                    loadBooks();
+                } else {
+                    alert('Error al eliminar: ' + response.status);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        }
+        
+        // Cargar si hay token
+        if (token) {
+            document.getElementById('auth').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            getUserRole().then(() => loadBooks());
+        }
+    </script>
+</body>
+</html>
