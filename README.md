@@ -2,8 +2,8 @@
 
 Una API RESTful robusta desarrollada en **Go (Golang)** acoplada a un cliente web dinámico construido con **HTML, CSS y Vanilla JavaScript**. Este sistema permite la administración integral de un catálogo de libros electrónicos, implementando prácticas sólidas de autenticación y control de acceso.
 
-![Book Management UI](https://via.placeholder.com/800x400.png?text=UI+del+Sistema+en+Modo+Oscuro)
-*(Nota: Puedes reemplazar este enlace por una captura real de tu interfaz)*
+![Book Management UI]("C:\Users\dfpaz\OneDrive\Imágenes\Screenshots\Captura de pantalla 2026-03-29 180203.png"
+
 
 ## 🚀 Características Principales
 
